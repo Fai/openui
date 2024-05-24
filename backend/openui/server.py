@@ -65,19 +65,17 @@ app = FastAPI(
     description="API for proxying LLM requests to different services",
 )
 
-openai = AsyncOpenAI(
-    base_url=config.OPENAI_BASE_URL,
-    api_key=config.OPENAI_API_KEY)
+openai = AsyncOpenAI(base_url=config.OPENAI_BASE_URL, api_key=config.OPENAI_API_KEY)
 
 if config.GROQ_API_KEY is not None:
-    groq = AsyncOpenAI(
-        base_url=config.GROQ_BASE_URL,
-        api_key=config.GROQ_API_KEY)
+    groq = AsyncOpenAI(base_url=config.GROQ_BASE_URL, api_key=config.GROQ_API_KEY)
 else:
     groq = None
 
 ollama = AsyncClient()
-ollama_openai = AsyncOpenAI(base_url=os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434") + "/v1")
+ollama_openai = AsyncOpenAI(
+    base_url=os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434") + "/v1"
+)
 router = APIRouter()
 session_store = DBSessionStore()
 github_sso = GithubSSO(
@@ -122,10 +120,10 @@ async def chat_completions(
         if data.get("model").startswith("gpt"):
             if data["model"] == "gpt-4" or data["model"] == "gpt-4-32k":
                 raise HTTPException(status=400, data="Model not supported")
-            response: AsyncStream[ChatCompletionChunk] = (
-                await openai.chat.completions.create(
-                    **data,
-                )
+            response: AsyncStream[
+                ChatCompletionChunk
+            ] = await openai.chat.completions.create(
+                **data,
             )
             # gpt-4 tokens are 20x more expensive
             multiplier = 20 if "gpt-4" in data["model"] else 1
@@ -138,10 +136,10 @@ async def chat_completions(
             data["model"] = data["model"].replace("groq/", "")
             if groq is None:
                 raise HTTPException(status=500, detail="Groq API key is not set.")
-            response: AsyncStream[ChatCompletionChunk] = (
-                await groq.chat.completions.create(
-                    **data,
-                )
+            response: AsyncStream[
+                ChatCompletionChunk
+            ] = await groq.chat.completions.create(
+                **data,
             )
             return StreamingResponse(
                 openai_stream_generator(response, input_tokens, user_id, 1),
@@ -163,13 +161,15 @@ async def chat_completions(
                 )
                 gen = await ollama_stream_generator(response, data)
             else:
-                response: AsyncStream[ChatCompletionChunk] = (
-                    await ollama_openai.chat.completions.create(
-                        **data,
-                    )
+                response: AsyncStream[
+                    ChatCompletionChunk
+                ] = await ollama_openai.chat.completions.create(
+                    **data,
                 )
+
                 def gen():
                     return openai_stream_generator(response, input_tokens, user_id, 0)
+
             return StreamingResponse(gen(), media_type="text/event-stream")
         raise HTTPException(status=404, detail="Invalid model")
     except (ResponseError, APIStatusError) as e:
@@ -338,6 +338,7 @@ async def create_share(id: str, payload: ShareRequest):
 async def get_share(id: str):
     return Response(storage.download(f"{id}.json"), media_type="application/json")
 
+
 async def get_openai_models():
     try:
         await openai.models.list()
@@ -346,6 +347,7 @@ async def get_openai_models():
     except Exception:
         return []
 
+
 async def get_ollama_models():
     try:
         return (await ollama.list())["models"]
@@ -353,12 +355,14 @@ async def get_ollama_models():
         logger.exception("Ollama Error: %s", e)
         return []
 
+
 async def get_groq_models():
     try:
         return (await groq.models.list()).data
     except Exception as e:
         logger.exception("Groq Error: %s", e)
         return []
+
 
 @router.get("/v1/models", tags="openui/models")
 async def models():
@@ -370,9 +374,12 @@ async def models():
     openai_models, groq_models, ollama_models = await asyncio.gather(*tasks)
     return {
         "models": {
-            "openai": openai_models,
-            "groq": groq_models,
-            "ollama": ollama_models,
+            # "openai": openai_models,
+            "openai": ["gpt-3.5turbo", "gpt-4o"],
+            # "groq": groq_models,
+            "groq": ["tensorq"],
+            # "ollama": ollama_models,
+            "ollama": ["llama1", "llama2"],
         }
     }
 
@@ -435,6 +442,7 @@ async def delete_session(
         content={},
         status_code=200,
     )
+
 
 # Render a funky mp3 if we render one :)
 @router.get("/openui/{name}.mp3", tags=["openui/audio"])
