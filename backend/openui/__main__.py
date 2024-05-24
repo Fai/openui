@@ -7,16 +7,17 @@ import uvicorn
 from uvicorn import Config
 import sys
 
+
 def is_running_in_docker():
     # Check for the .dockerenv file
-    if os.path.exists('/.dockerenv'):
+    if os.path.exists("/.dockerenv"):
         return True
 
     # Check for Docker-related entries in /proc/self/cgroup
     try:
-        with open('/proc/self/cgroup', 'r') as file:
+        with open("/proc/self/cgroup", "r") as file:
             for line in file:
-                if 'docker' in line:
+                if "docker" in line:
                     return True
     except Exception as e:
         pass
@@ -25,6 +26,7 @@ def is_running_in_docker():
         return True
 
     return False
+
 
 if __name__ == "__main__":
     ui = any([arg == "-i" for arg in sys.argv])
@@ -52,7 +54,8 @@ if __name__ == "__main__":
     api_server = server.Server(
         Config(
             "openui.server:app",
-            host="0.0.0.0" if is_running_in_docker() else "127.0.0.1",
+            # host="0.0.0.0" if is_running_in_docker() else "127.0.0.1",
+            host="0.0.0.0",
             log_config=str(config_file) if ui else None,
             port=7878,
             reload=reload,
@@ -71,7 +74,8 @@ if __name__ == "__main__":
             # work with the uvicorn.run approach, so here we are
             uvicorn.run(
                 "openui.server:app",
-                host="0.0.0.0" if is_running_in_docker() else "127.0.0.1",
+                # host="0.0.0.0" if is_running_in_docker() else "127.0.0.1",
+                host="0.0.0.0",
                 port=7878,
                 reload=reload,
             )
